@@ -1,80 +1,79 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Record Audio</title>
+    <style>
+        #controls {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+        }
+        .button {
+          font-size: 2rem;
+          margin: 1rem;
+        }
+    </style>
+</head>
 <body>
+    <div id="controls">
+        <button id="record" class="button">Start Recording</button>
+        <button id="stop" class="button" disabled>Stop Recording</button>
+        <button id="play" class="button" disabled>Play</button>
+    </div>
+    <script>
+        const record = document.getElementById('record');
+        const stop = document.getElementById('stop');
+        const play = document.getElementById('play');
+        let rec;
+        let audioStream;
+        let chunks = [];
 
-<h1>SendAudio version 1.3</h1>
+        record.onclick = async () => {
+            chunks = []; // clear old chunks
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioStream = stream;
+            rec = new MediaRecorder(stream);
+            rec.ondataavailable = e => {
+                chunks.push(e.data);
+                if (rec.state == 'inactive') {
+                    let blob = new Blob(chunks, { type: 'audio/webm' });
+                    let reader = new FileReader();
+                    reader.onloadend = function () {
+                        let base64String = reader.result.replace("data:audio/webm;base64,", "");
+                        fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio: base64String }) // send the base64 audio string
+                        })
+                        .then(response => response.json())
+                        .then(data => console.log(data))
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                    }
+                    reader.readAsDataURL(blob);
+                    play.disabled = false;
+                }
+            };
+            rec.start();
+            record.disabled = true;
+            stop.disabled = false;
+        };
 
-<button id="start" style="font-size: 20px; padding: 10px;">Start Recording</button>
-<button id="stop" style="font-size: 20px; padding: 10px;" disabled>Stop Recording</button>
-<button id="play" style="font-size: 20px; padding: 10px;" disabled>Play Audio</button>
-<p id="status"></p>
-<p id="error"></p>
+        stop.onclick = () => {
+            rec.stop();
+            audioStream.getTracks()[0].stop();
+            record.disabled = false;
+            stop.disabled = true;
+        };
 
-<script>
-let chunks = [];
-let audioURL;
-let blob;
-
-const start = document.getElementById('start');
-const stop = document.getElementById('stop');
-const play = document.getElementById('play');
-const status = document.getElementById('status');
-const error = document.getElementById('error');
-
-navigator.mediaDevices.getUserMedia({audio:true})
-.then(stream => {handlerFunction(stream)})
-
-function handlerFunction(stream) {
-  rec = new MediaRecorder(stream);
-  rec.ondataavailable = e => {
-    chunks.push(e.data);
-    if (rec.state == "inactive"){
-      blob = new Blob(chunks, {type: 'audio/webm'});
-      audioURL = window.URL.createObjectURL(blob);
-      status.innerText = "Audio URL created";
-      chunks = [];
-
-      // Sending data to server
-      fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
-        method: 'POST',
-        body: blob
-      }).then(response => {
-        console.log(response);
-        status.innerText = "Audio sent to server";
-      }).catch(error => {
-        console.error('Error:', error);
-        status.innerText = "Error sending audio to server";
-      });
-    }
-  }
-}
-
-start.addEventListener("click", function() {
-  start.disabled = true;
-  start.style.backgroundColor = "blue";
-  stop.disabled=false;
-  play.disabled=true;
-  status.innerText = "Recording...";
-  rec.start();
-});
-  
-stop.addEventListener("click", function() {
-  stop.disabled = true;
-  stop.style.backgroundColor = "blue";
-  start.disabled = false;
-  play.disabled = false;
-  status.innerText = "Stopped Recording - Sending to Server";
-  rec.stop();
-});
-
-play.addEventListener("click", function() {
-  status.innerText = "Playing Audio";
-  var audio = new Audio(audioURL);
-  audio.play().catch(e => {
-    error.innerText = 'error playing audio: ' + e.message;
-  });
-});
-</script>
-
+        play.onclick = () => {
+            let blob = new Blob(chunks, { type: 'audio/webm' });
+            let audioUrl = URL.createObjectURL(blob);
+            let audio = new Audio(audioUrl);
+            audio.play();
+        };
+    </script>
 </body>
 </html>
