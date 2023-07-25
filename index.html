@@ -53,7 +53,7 @@
                             };
 
                             player.onerror = function(e) {
-                                log("Error playing audio: " + e);
+                                log("Error playing audio: " + e.target.error.code + " - " + e.target.error.message);
                             };
                         });
 
