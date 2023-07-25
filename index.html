@@ -5,7 +5,7 @@
 </head>
 <body>
     <h2>Record Audio</h2>
-    <p>Version: 1.0.2</p> <!-- Put the version number here -->
+    <p>Version: 1.0.3</p> <!-- Put the version number here -->
 
     <button id="record">Start Recording</button>
     <button id="stop" disabled>Stop Recording</button>
@@ -19,7 +19,7 @@
         console.log('Recording...');
         navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/wav'});
+            mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/mp3'});
             mediaRecorder.start();
 
             const audioChunks = [];
@@ -29,7 +29,7 @@
 
             mediaRecorder.addEventListener('stop', () => {
                 console.log('Recording stopped...');
-                audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
                 console.log('Audio Blob created...');
                 document.getElementById('play').disabled = false;
             });
