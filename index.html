@@ -1,68 +1,56 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Audio Recorder v2.0</title>
-    </head>
-    <body>
-        <button id="start">Start Recording</button>
-        <p id="status"></p>
-        <audio id="player" controls></audio>
-        <div id="log"></div>
+<head>
+    <title>Record Audio</title>
+</head>
+<body>
+    <h2>Record Audio</h2>
+    <p>Version: 1.0.2</p> <!-- Put the version number here -->
 
-        <script>
-            var button = document.getElementById('start');
-            var status = document.getElementById('status');
-            var player = document.getElementById('player');
-            var logDiv = document.getElementById('log');
+    <button id="record">Start Recording</button>
+    <button id="stop" disabled>Stop Recording</button>
+    <button id="play" disabled>Play Audio</button>
 
-            function log(message) {
-                console.log(message);
-                var p = document.createElement('p');
-                p.appendChild(document.createTextNode(message));
-                logDiv.appendChild(p);
-            }
+    <script>
+    let mediaRecorder;
+    let audioBlob;
 
-            button.onclick = function() {
-                log('Recording...');
-                navigator.mediaDevices.getUserMedia({audio: true})
-                    .then(stream => {
-                        log('Asking for permission...');
-                        const mediaRecorder = new MediaRecorder(stream);
-                        mediaRecorder.start();
+    document.getElementById('record').onclick = function() {
+        console.log('Recording...');
+        navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/wav'});
+            mediaRecorder.start();
 
-                        const audioChunks = [];
-                        mediaRecorder.addEventListener("dataavailable", event => {
-                            audioChunks.push(event.data);
-                        });
+            const audioChunks = [];
+            mediaRecorder.addEventListener('dataavailable', event => {
+                audioChunks.push(event.data);
+            });
 
-                        mediaRecorder.addEventListener("stop", () => {
-                            log('Finished recording, now playing back...');
-                            const audioBlob = new Blob(audioChunks);
-                            const audioUrl = URL.createObjectURL(audioBlob);
-                            player.src = audioUrl;
+            mediaRecorder.addEventListener('stop', () => {
+                console.log('Recording stopped...');
+                audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                console.log('Audio Blob created...');
+                document.getElementById('play').disabled = false;
+            });
 
-                            if (audioUrl) {
-                                log("Audio URL created: " + audioUrl);
-                            } else {
-                                log("Failed to create audio URL");
-                            }
+            document.getElementById('stop').disabled = false;
+            document.getElementById('record').disabled = true;
+        });
+    };
 
-                            player.onloadedmetadata = function() {
-                                log("Audio metadata loaded");
-                                player.play();
-                            };
+    document.getElementById('stop').onclick = function() {
+        mediaRecorder.stop();
+        document.getElementById('stop').disabled = true;
+        document.getElementById('record').disabled = false;
+    };
 
-                            player.onerror = function(e) {
-                                log("Error playing audio: " + e.target.error.code + " - " + e.target.error.message);
-                            };
-                        });
-
-                        setTimeout(() => {
-                            log('Permission granted, now stopping...');
-                            mediaRecorder.stop();
-                        }, 3000);
-                    });
-            };
-        </script>
-    </body>
+    document.getElementById('play').onclick = function() {
+        console.log('Playing Audio...');
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.play().catch(error => console.log('Error playing audio:', error));
+    };
+    </script>
+</body>
 </html>
