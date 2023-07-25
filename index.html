@@ -1,56 +1,80 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Record Audio</title>
-</head>
 <body>
-    <h2>Record Audio</h2>
-    <p>Version: 1.0.3</p> <!-- Put the version number here -->
 
-    <button id="record">Start Recording</button>
-    <button id="stop" disabled>Stop Recording</button>
-    <button id="play" disabled>Play Audio</button>
+<h1>SendAudio version 1.3</h1>
 
-    <script>
-    let mediaRecorder;
-    let audioBlob;
+<button id="start" style="font-size: 20px; padding: 10px;">Start Recording</button>
+<button id="stop" style="font-size: 20px; padding: 10px;" disabled>Stop Recording</button>
+<button id="play" style="font-size: 20px; padding: 10px;" disabled>Play Audio</button>
+<p id="status"></p>
+<p id="error"></p>
 
-    document.getElementById('record').onclick = function() {
-        console.log('Recording...');
-        navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/mp3'});
-            mediaRecorder.start();
+<script>
+let chunks = [];
+let audioURL;
+let blob;
 
-            const audioChunks = [];
-            mediaRecorder.addEventListener('dataavailable', event => {
-                audioChunks.push(event.data);
-            });
+const start = document.getElementById('start');
+const stop = document.getElementById('stop');
+const play = document.getElementById('play');
+const status = document.getElementById('status');
+const error = document.getElementById('error');
 
-            mediaRecorder.addEventListener('stop', () => {
-                console.log('Recording stopped...');
-                audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
-                console.log('Audio Blob created...');
-                document.getElementById('play').disabled = false;
-            });
+navigator.mediaDevices.getUserMedia({audio:true})
+.then(stream => {handlerFunction(stream)})
 
-            document.getElementById('stop').disabled = false;
-            document.getElementById('record').disabled = true;
-        });
-    };
+function handlerFunction(stream) {
+  rec = new MediaRecorder(stream);
+  rec.ondataavailable = e => {
+    chunks.push(e.data);
+    if (rec.state == "inactive"){
+      blob = new Blob(chunks, {type: 'audio/webm'});
+      audioURL = window.URL.createObjectURL(blob);
+      status.innerText = "Audio URL created";
+      chunks = [];
 
-    document.getElementById('stop').onclick = function() {
-        mediaRecorder.stop();
-        document.getElementById('stop').disabled = true;
-        document.getElementById('record').disabled = false;
-    };
+      // Sending data to server
+      fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
+        method: 'POST',
+        body: blob
+      }).then(response => {
+        console.log(response);
+        status.innerText = "Audio sent to server";
+      }).catch(error => {
+        console.error('Error:', error);
+        status.innerText = "Error sending audio to server";
+      });
+    }
+  }
+}
 
-    document.getElementById('play').onclick = function() {
-        console.log('Playing Audio...');
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.play().catch(error => console.log('Error playing audio:', error));
-    };
-    </script>
+start.addEventListener("click", function() {
+  start.disabled = true;
+  start.style.backgroundColor = "blue";
+  stop.disabled=false;
+  play.disabled=true;
+  status.innerText = "Recording...";
+  rec.start();
+});
+  
+stop.addEventListener("click", function() {
+  stop.disabled = true;
+  stop.style.backgroundColor = "blue";
+  start.disabled = false;
+  play.disabled = false;
+  status.innerText = "Stopped Recording - Sending to Server";
+  rec.stop();
+});
+
+play.addEventListener("click", function() {
+  status.innerText = "Playing Audio";
+  var audio = new Audio(audioURL);
+  audio.play().catch(e => {
+    error.innerText = 'error playing audio: ' + e.message;
+  });
+});
+</script>
+
 </body>
 </html>
