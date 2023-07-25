@@ -1,60 +1,59 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Send Audio</title>
-  </head>
-  <body>
-    <button id="record">Start Recording</button>
-    <p id="status"></p>
-    <p id="logs"></p>
+    <head>
+        <title>Audio Recorder</title>
+    </head>
+    <body>
+        <button id="start">Start Recording</button>
+        <p id="status"></p>
+        <audio id="player" controls></audio>
 
-    <script>
-      var button = document.getElementById('record');
-      var statusElement = document.getElementById('status');
-      var logsElement = document.getElementById('logs');
+        <script>
+            var button = document.getElementById('start');
+            var status = document.getElementById('status');
+            var player = document.getElementById('player');
 
-      function log(message) {
-        console.log(message);
-        logsElement.innerHTML += message + '<br>';
-      }
+            button.onclick = function() {
+                status.textContent = 'Recording...';
+                navigator.mediaDevices.getUserMedia({audio: true})
+                    .then(stream => {
+                        status.textContent = 'Asking for permission...';
+                        const mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.start();
 
-      button.onclick = function () {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          log('getUserMedia() is not supported by your browser');
-          return;
-        }
+                        const audioChunks = [];
+                        mediaRecorder.addEventListener("dataavailable", event => {
+                            audioChunks.push(event.data);
+                        });
 
-        log('Asking for permission...');
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(function (stream) {
-            log('Permission granted');
-            var mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.start();
+                        mediaRecorder.addEventListener("stop", () => {
+                            status.textContent = 'Finished recording, now playing back...';
+                            const audioBlob = new Blob(audioChunks);
+                            const audioUrl = URL.createObjectURL(audioBlob);
+                            player.src = audioUrl;
 
-            statusElement.innerText = 'Recording...';
+                            if (audioUrl) {
+                                console.log("Audio URL created: " + audioUrl);
+                            } else {
+                                console.log("Failed to create audio URL");
+                            }
 
-            var audioChunks = [];
-            mediaRecorder.addEventListener('dataavailable', function (event) {
-              audioChunks.push(event.data);
-            });
+                            player.onloadedmetadata = function() {
+                                console.log("Audio metadata loaded");
+                                player.play();
+                            };
 
-            mediaRecorder.addEventListener('stop', function () {
-              var audioBlob = new Blob(audioChunks);
-              var audioUrl = URL.createObjectURL(audioBlob);
-              var audio = new Audio(audioUrl);
-              audio.play();
+                            player.onerror = function(e) {
+                                console.log("Error playing audio: ", e);
+                            };
+                        });
 
-              statusElement.innerText = '';
-            });
-
-            setTimeout(function () {
-              mediaRecorder.stop();
-            }, 3000);
-          })
-          .catch(function (err) {
-            log('Permission denied: ' + err);
-          });
-      };
-    </script>
-  </body>
+                        setTimeout(() => {
+                            status.textContent = 'Permission granted, now stopping...';
+                            mediaRecorder.stop();
+                        }, 3000);
+                    });
+            };
+        </script>
+    </body>
 </html>
