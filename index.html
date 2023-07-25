@@ -1,23 +1,32 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Audio Recorder</title>
+        <title>Audio Recorder v2.0</title>
     </head>
     <body>
         <button id="start">Start Recording</button>
         <p id="status"></p>
         <audio id="player" controls></audio>
+        <div id="log"></div>
 
         <script>
             var button = document.getElementById('start');
             var status = document.getElementById('status');
             var player = document.getElementById('player');
+            var logDiv = document.getElementById('log');
+
+            function log(message) {
+                console.log(message);
+                var p = document.createElement('p');
+                p.appendChild(document.createTextNode(message));
+                logDiv.appendChild(p);
+            }
 
             button.onclick = function() {
-                status.textContent = 'Recording...';
+                log('Recording...');
                 navigator.mediaDevices.getUserMedia({audio: true})
                     .then(stream => {
-                        status.textContent = 'Asking for permission...';
+                        log('Asking for permission...');
                         const mediaRecorder = new MediaRecorder(stream);
                         mediaRecorder.start();
 
@@ -27,29 +36,29 @@
                         });
 
                         mediaRecorder.addEventListener("stop", () => {
-                            status.textContent = 'Finished recording, now playing back...';
+                            log('Finished recording, now playing back...');
                             const audioBlob = new Blob(audioChunks);
                             const audioUrl = URL.createObjectURL(audioBlob);
                             player.src = audioUrl;
 
                             if (audioUrl) {
-                                console.log("Audio URL created: " + audioUrl);
+                                log("Audio URL created: " + audioUrl);
                             } else {
-                                console.log("Failed to create audio URL");
+                                log("Failed to create audio URL");
                             }
 
                             player.onloadedmetadata = function() {
-                                console.log("Audio metadata loaded");
+                                log("Audio metadata loaded");
                                 player.play();
                             };
 
                             player.onerror = function(e) {
-                                console.log("Error playing audio: ", e);
+                                log("Error playing audio: " + e);
                             };
                         });
 
                         setTimeout(() => {
-                            status.textContent = 'Permission granted, now stopping...';
+                            log('Permission granted, now stopping...');
                             mediaRecorder.stop();
                         }, 3000);
                     });
