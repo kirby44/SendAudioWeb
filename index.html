@@ -1,49 +1,60 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Record Audio</title>
-    </head>
-    <body>
-        <button id="record">Record</button>
-        <button id="stopRecord" disabled>Stop</button>
-        <p id="status">Status: Ready</p>
-        <audio id="audio" controls></audio>
-        <script>
-            let record = document.getElementById('record');
-            let stopRecord = document.getElementById('stopRecord');
-            let statusText = document.getElementById('status');
+  <head>
+    <title>Send Audio</title>
+  </head>
+  <body>
+    <button id="record">Start Recording</button>
+    <p id="status"></p>
+    <p id="logs"></p>
 
-            let audio = document.getElementById('audio');
-            let audioChunks = [];
-            let mediaRecorder;
+    <script>
+      var button = document.getElementById('record');
+      var statusElement = document.getElementById('status');
+      var logsElement = document.getElementById('logs');
 
-            navigator.mediaDevices.getUserMedia({audio: true})
-                .then(stream => {
-                    mediaRecorder = new MediaRecorder(stream);
-                    record.onclick = () => {
-                        mediaRecorder.start();
-                        statusText.textContent = 'Status: Recording...';
-                        record.style.background = "red";
-                        record.disabled = true;
-                        stopRecord.disabled=false;
-                    }
-                    stopRecord.onclick = () => {
-                        mediaRecorder.stop();
-                        statusText.textContent = 'Status: Recording Stopped.';
-                        record.style.background = "";
-                        record.disabled = false;
-                        stopRecord.disabled=true;
-                    }
-                    mediaRecorder.ondataavailable = function(e) {
-                        audioChunks.push(e.data);
-                    }
-                    mediaRecorder.onstop = function(e) {
-                        let blob = new Blob(audioChunks, {'type':'audio/ogg; codecs=opus'});
-                        audioChunks = [];
-                        let audioURL = URL.createObjectURL(blob);
-                        audio.src = audioURL;
-                    }
-                });
-        </script>
-    </body>
+      function log(message) {
+        console.log(message);
+        logsElement.innerHTML += message + '<br>';
+      }
+
+      button.onclick = function () {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          log('getUserMedia() is not supported by your browser');
+          return;
+        }
+
+        log('Asking for permission...');
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(function (stream) {
+            log('Permission granted');
+            var mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+
+            statusElement.innerText = 'Recording...';
+
+            var audioChunks = [];
+            mediaRecorder.addEventListener('dataavailable', function (event) {
+              audioChunks.push(event.data);
+            });
+
+            mediaRecorder.addEventListener('stop', function () {
+              var audioBlob = new Blob(audioChunks);
+              var audioUrl = URL.createObjectURL(audioBlob);
+              var audio = new Audio(audioUrl);
+              audio.play();
+
+              statusElement.innerText = '';
+            });
+
+            setTimeout(function () {
+              mediaRecorder.stop();
+            }, 3000);
+          })
+          .catch(function (err) {
+            log('Permission denied: ' + err);
+          });
+      };
+    </script>
+  </body>
 </html>
