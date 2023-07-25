@@ -1,75 +1,49 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Audio Recorder</title>
-</head>
-<body>
-    <button id="start">Start</button>
-    <button id="stop">Stop</button>
-    <br>
-    <button id="play">Play</button>
-    <audio id="audio"></audio>
-    <br>
-    <input type="text" id="lambdaURL" placeholder="Lambda Endpoint URL">
-    <button id="post">POST to Lambda</button>
+    <head>
+        <title>Record Audio</title>
+    </head>
+    <body>
+        <button id="record">Record</button>
+        <button id="stopRecord" disabled>Stop</button>
+        <p id="status">Status: Ready</p>
+        <audio id="audio" controls></audio>
+        <script>
+            let record = document.getElementById('record');
+            let stopRecord = document.getElementById('stopRecord');
+            let statusText = document.getElementById('status');
 
-    <script>
-        let chunks = [];
-        let mediaRecorder;
-        let blob;
+            let audio = document.getElementById('audio');
+            let audioChunks = [];
+            let mediaRecorder;
 
-        navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            mediaRecorder = new MediaRecorder(stream);
-
-            mediaRecorder.onstart = () => {
-                chunks = [];
-            };
-
-            mediaRecorder.ondataavailable = e => {
-                chunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = () => {
-                blob = new Blob(chunks, { 'type' : 'audio/ogg; codecs=opus' });
-                const audioURL = URL.createObjectURL(blob);
-                document.querySelector('#audio').src = audioURL;
-            };
-        });
-
-        document.querySelector('#start').onclick = () => {
-            mediaRecorder.start();
-        };
-
-        document.querySelector('#stop').onclick = () => {
-            mediaRecorder.stop();
-        };
-
-        document.querySelector('#play').onclick = () => {
-            document.querySelector('#audio').play();
-        };
-
-        document.querySelector('#post').onclick = async () => {
-            try {
-                let lambdaURL = document.querySelector("#lambdaURL").value;
-                let reader = new FileReader();
-                reader.onloadend = async function() {
-                    let base64data = reader.result;
-                    let response = await fetch(lambdaURL, {
-                        method: 'POST',
-                        body: JSON.stringify({audio: base64data})
-                    });
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+            navigator.mediaDevices.getUserMedia({audio: true})
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+                    record.onclick = () => {
+                        mediaRecorder.start();
+                        statusText.textContent = 'Status: Recording...';
+                        record.style.background = "red";
+                        record.disabled = true;
+                        stopRecord.disabled=false;
                     }
-                    let data = await response.json();
-                    console.log(data);
-                }
-                reader.readAsDataURL(blob); // converts the blob to base64 and calls onloadend
-            } catch (error) {
-                console.error('There has been a problem with your fetch operation:', error);
-            }
-        };
-    </script>
-</body>
+                    stopRecord.onclick = () => {
+                        mediaRecorder.stop();
+                        statusText.textContent = 'Status: Recording Stopped.';
+                        record.style.background = "";
+                        record.disabled = false;
+                        stopRecord.disabled=true;
+                    }
+                    mediaRecorder.ondataavailable = function(e) {
+                        audioChunks.push(e.data);
+                    }
+                    mediaRecorder.onstop = function(e) {
+                        let blob = new Blob(audioChunks, {'type':'audio/ogg; codecs=opus'});
+                        audioChunks = [];
+                        let audioURL = URL.createObjectURL(blob);
+                        audio.src = audioURL;
+                    }
+                });
+        </script>
+    </body>
 </html>
