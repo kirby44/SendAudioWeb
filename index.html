@@ -13,6 +13,11 @@
           font-size: 2rem;
           margin: 1rem;
         }
+        #response-text {
+          text-align: center;
+          font-size: 1.5rem;
+          margin-top: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -21,10 +26,12 @@
         <button id="stop" class="button" disabled>Stop Recording</button>
         <button id="play" class="button" disabled>Play</button>
     </div>
+    <div id="response-text"></div>
     <script>
         const record = document.getElementById('record');
         const stop = document.getElementById('stop');
         const play = document.getElementById('play');
+        const responseText = document.getElementById('response-text'); // New line
         let rec;
         let audioStream;
         let chunks = [];
@@ -47,7 +54,10 @@
                             body: JSON.stringify({ audio: base64String }) // send the base64 audio string
                         })
                         .then(response => response.json())
-                        .then(data => console.log(data))
+                        .then(data => {
+                            console.log(data);
+                            responseText.textContent = JSON.parse(data.body); // New line
+                        })
                         .catch((error) => {
                             console.error('Error:', error);
                         });
