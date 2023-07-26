@@ -1,63 +1,98 @@
-const record = document.getElementById('record');
-const stop = document.getElementById('stop');
-const play = document.getElementById('play');
-const responseText = document.getElementById('response-text');
-let rec;
-let audioStream;
-let chunks = [];
-let audioMimeType;
-
-if (navigator.userAgent.indexOf("Chrome") != -1 ) {
-    audioMimeType = 'audio/webm';
-} else {
-    audioMimeType = 'audio/mp3'; // Or use 'audio/mp4' if it suits your needs better
-}
-
-record.onclick = async () => {
-    chunks = []; // clear old chunks
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioStream = stream;
-    rec = new MediaRecorder(stream, { mimeType: audioMimeType });
-    rec.ondataavailable = e => {
-        chunks.push(e.data);
-        if (rec.state == 'inactive') {
-            let blob = new Blob(chunks, { type: audioMimeType });
-            let reader = new FileReader();
-            reader.onloadend = function () {
-                let base64String = reader.result.replace("data:"+ audioMimeType +";base64,", "");
-                fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ audio: base64String }) // send the base64 audio string
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log(data);
-                    responseText.textContent = JSON.parse(data.body); // New line
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                });
-            }
-            reader.readAsDataURL(blob);
-            play.disabled = false;
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Record Audio</title>
+    <style>
+        #controls {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          flex-direction: column; /* Added this line to make the items stack vertically */
         }
-    };
-    rec.start();
-    record.disabled = true;
-    stop.disabled = false;
-};
-
-stop.onclick = () => {
-    rec.stop();
-    audioStream.getTracks()[0].stop();
-    record.disabled = false;
-    stop.disabled = true;
-};
-
-play.onclick = () => {
-    let blob = new Blob(chunks, { type: audioMimeType });
-    let audioUrl = URL.createObjectURL(blob);
-    let audio = new Audio(audioUrl);
-    audio.play();
-};
+        .button {
+          font-size: 2rem;
+          margin: 1rem;
+        }
+        #response-text {
+          text-align: center;
+          font-size: 1.5rem;
+          margin-bottom: 2rem; /* Modified this line to add space below the text */
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div id="response-text"></div> <!-- Moved this line above the buttons -->
+        <button id="record" class="button">Start Recording</button>
+        <button id="stop" class="button" disabled>Stop Recording</button>
+        <button id="play" class="button" disabled>Play</button>
+    </div>
+    <div id="response-text"></div>
+    <script>
+        const record = document.getElementById('record');
+        const stop = document.getElementById('stop');
+        const play = document.getElementById('play');
+        const responseText = document.getElementById('response-text');
+        let rec;
+        let audioStream;
+        let chunks = [];
+        let audioMimeType;
+            
+        if (navigator.userAgent.indexOf("Chrome") != -1 ) {
+            audioMimeType = 'audio/webm';
+        } else {
+            audioMimeType = 'audio/mp3'; // Or use 'audio/mp4' if it suits your needs better
+        }
+        
+        record.onclick = async () => {
+            chunks = []; // clear old chunks
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioStream = stream;
+            rec = new MediaRecorder(stream, { mimeType: audioMimeType });
+            rec.ondataavailable = e => {
+                chunks.push(e.data);
+                if (rec.state == 'inactive') {
+                    let blob = new Blob(chunks, { type: audioMimeType });
+                    let reader = new FileReader();
+                    reader.onloadend = function () {
+                        let base64String = reader.result.replace("data:"+ audioMimeType +";base64,", "");
+                        fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio: base64String }) // send the base64 audio string
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data);
+                            responseText.textContent = JSON.parse(data.body); // New line
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                    }
+                    reader.readAsDataURL(blob);
+                    play.disabled = false;
+                }
+            };
+            rec.start();
+            record.disabled = true;
+            stop.disabled = false;
+        };
+        
+        stop.onclick = () => {
+            rec.stop();
+            audioStream.getTracks()[0].stop();
+            record.disabled = false;
+            stop.disabled = true;
+        };
+        
+        play.onclick = () => {
+            let blob = new Blob(chunks, { type: audioMimeType });
+            let audioUrl = URL.createObjectURL(blob);
+            let audio = new Audio(audioUrl);
+            audio.play();
+        };
+    </script>
+</body>
+</html>
