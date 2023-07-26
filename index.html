@@ -8,6 +8,7 @@
           justify-content: center;
           align-items: center;
           height: 100vh;
+          flex-direction: column; /* Added this line to make the items stack vertically */
         }
         .button {
           font-size: 2rem;
@@ -16,12 +17,13 @@
         #response-text {
           text-align: center;
           font-size: 1.5rem;
-          margin-top: 2rem;
+          margin-bottom: 2rem; /* Modified this line to add space below the text */
         }
     </style>
 </head>
 <body>
     <div id="controls">
+        <div id="response-text"></div> <!-- Moved this line above the buttons -->
         <button id="record" class="button">Start Recording</button>
         <button id="stop" class="button" disabled>Stop Recording</button>
         <button id="play" class="button" disabled>Play</button>
