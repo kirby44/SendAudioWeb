@@ -53,17 +53,22 @@
                         fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audio: base64String }) // send the base64 audio string
+                            body: JSON.stringify({ 
+                                audio: base64String, 
+                                prompt: "ファイヤ！サンダ！フリーザ！", 
+                                language: "ja"
+                            }) // send the base64 audio string, prompt and language
                         })
                         .then(response => response.json())
                         .then(data => {
                             console.log(data);
-                            responseText.textContent = JSON.parse(data.body); // New line
+                            responseText.textContent = JSON.parse(data.body);
                         })
                         .catch((error) => {
                             console.error('Error:', error);
                         });
                     }
+
                     reader.readAsDataURL(blob);
                     play.disabled = false;
                 }
