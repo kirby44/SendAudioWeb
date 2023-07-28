@@ -50,14 +50,16 @@
                     let reader = new FileReader();
                     reader.onloadend = function () {
                         let base64String = reader.result.replace("data:audio/webm;base64,", "");
+                        let requestData = { 
+                            audio: base64String, 
+                            prompt: "ファイヤ！サンダ！フリーザ！", 
+                            language: "ja" 
+                        };
+                        console.log("Request data: ", requestData);  // debug line to print request data
                         fetch('https://qcg5aol4g1.execute-api.ap-northeast-1.amazonaws.com/default/whisperSageMaker', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                audio: base64String, 
-                                prompt: "ファイヤ！サンダ！フリーザ！", 
-                                language: "ja"
-                            }) // send the base64 audio string, prompt and language
+                            body: JSON.stringify(requestData) // send the base64 audio string, prompt and language
                         })
                         .then(response => response.json())
                         .then(data => {
@@ -68,6 +70,7 @@
                             console.error('Error:', error);
                         });
                     }
+
 
                     reader.readAsDataURL(blob);
                     play.disabled = false;
